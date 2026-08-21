@@ -1,0 +1,25 @@
+# 环境与密钥
+.env
+backend/.env
+*.local
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+
+# 知识库语料与生成的向量索引（教材文本有版权，自备语料后用 scripts/build_rag_index.py 生成）
+backend/data/*.md
+backend/data/rag_index.json
+!backend/data/README.md
+
+# Node / 前端构建
+node_modules/
+frontend/dist/
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
