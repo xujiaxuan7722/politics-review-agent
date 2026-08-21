@@ -1,0 +1,43 @@
+# 一键启动：docker compose up -d --build
+# 访问：http://localhost:8080（前端，/api 由 nginx 反代到后端）
+# 密钥：复制 backend/.env.example 为 backend/.env 并填入 SiliconFlow / 百度 OCR 密钥
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: politics
+      POSTGRES_PASSWORD: politics_dev
+      POSTGRES_DB: politics
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U politics -d politics"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      # 容器内覆盖 .env 里的数据库地址，指向 compose 内的 postgres 服务
+      DATABASE_URL: postgresql+psycopg://politics:politics_dev@postgres:5432/politics
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8003:8000"   # 可选：便于本机直接调试 API，不需要可删除
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
