@@ -1,3 +1,16 @@
+# 2026-09-04 第六至十轮：学习管家升级为唯一编排层、模型端点分组、多轮对话、判卷评测
+
+1. **学习管家工具 4 → 8**：新增 `get_due_cards` / `get_mistakes_by_topic` / `explain_topic` / `grade_answer`，讲解与判卷作为工具被编排；复习规划主路改走学习管家（规划专用规则），未取数或收尾失败时回退确定性规划模块。
+2. **循环护栏四道**：同参数重复调用拦截（两次强制收尾）；步数用尽时不带工具再问一次，凭已取数据收尾；单工具异常回灌模型继续；只描述计划不执行时推一把（最多一次）。
+3. **SSE 进度流** `POST /api/agents/manager-stream`：思考 / 工具开始 / 完成 / 失败 / 推一把 逐条推送，前端步骤标签实时变色，显示实际模型与是否降级。
+4. **多轮对话**：新表 `conversations` / `conversation_messages`（Alembic `0097716b701c`），只存用户话与最终答复，带最近 12 条且总长 6000 字内；`GET/DELETE /api/agents/conversations[/{id}]`；前端对话记录、新对话、回到历史对话。
+5. **模型端点分组与降级链**：向量组 / 通用对话组 / 判卷专用组 / 学习管家专用组，各自可指向不同平台；思考开关按平台翻译（`enable_thinking` vs `reasoning_effort`）；请求直连不走系统代理；通用组 2s/4s 退避重试后降级到基础组，学习管家三级链 专用 → 通用 → 基础；`CHAT_THINKING` 全局总闸；LaTeX 清洗兜底。当前配置：管家 / 判卷 = 商汤 DeepSeek-V4-pro，通用 = DeepSeek-V4-flash，向量 = SiliconFlow bge-m3。
+6. **判卷准确率评测**：`evals/grading/questions.jsonl` 46 题 + `scripts/eval_grading.py`（评测只重试不降级、429 退避、`--rescore` 重算、`--report` 汇总）。pro / flash 判断与答案准确率均 100%，Qwen3-8B 判断 84.8%。
+7. **题型由拍题的人指定**：`question_type` = single / multi / unknown 贯穿判卷接口、拍题流水线与管家工具；前端两处按钮组；学生多选作答可解析。不按题号或试卷惯例推断。
+8. 清理：一次性数据修复脚本删除，`修改说明.md` 迁入 `docs/CHANGELOG.md`，README 重写学习管家章节、加界面截图与评测表。pytest 19 → 62。
+
+---
+
 # 2026-08-21 第五轮：README、Docker Compose、学习数据看板
 
 1. **README.md**（项目根）：功能概览、架构图、两种多智能体形态说明、技术选型与取舍表、Compose / 本地两种启动方式、环境变量、知识库构建、迁移、测试、API 一览、目录结构、已知限制。
