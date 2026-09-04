@@ -110,7 +110,7 @@
     </el-card>
 
     <div v-if="!rawText && !uploading && !statusText" class="empty-state">
-      请先上传一张考研政治题目截图。
+      请先上传一张政治题目截图。
     </div>
   </section>
 </template>

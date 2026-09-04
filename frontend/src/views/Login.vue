@@ -4,7 +4,7 @@
       <div class="auth-visual">
         <div class="auth-logo">政</div>
         <p class="eyebrow">Politics Review AI</p>
-        <h1>登录考研政治复习系统</h1>
+        <h1>登录政治复习系统</h1>
         <p>
           用 OCR、RAG 知识库和抗遗忘复习，把政治错题、知识点和背诵任务整理成可追踪的复习节奏。
         </p>
@@ -17,7 +17,7 @@
 
       <div class="auth-form">
         <h2>欢迎回来</h2>
-        <p>登录后进入你的考研政治学习工作台。</p>
+        <p>登录后进入你的政治学习工作台。</p>
 
         <el-form label-position="top" @submit.prevent>
           <el-form-item label="用户名">

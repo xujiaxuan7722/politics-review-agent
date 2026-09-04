@@ -50,7 +50,7 @@ TOOL_SPECS = [
         "type": "function",
         "function": {
             "name": "search_knowledge",
-            "description": "在考研政治教材知识库中检索资料，返回最相关的教材段落。需要讲解概念、核实知识点时调用。",
+            "description": "在政治教材知识库中检索资料，返回最相关的教材段落。需要讲解概念、核实知识点时调用。",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -100,7 +100,7 @@ TOOL_SPECS = [
         "type": "function",
         "function": {
             "name": "explain_topic",
-            "description": "结合教材知识库，系统讲解一个考研政治知识点（是什么/怎么理解/易混与考法）。用户要求讲解、或错题分析后需要补课时调用。",
+            "description": "结合教材知识库，系统讲解一个政治知识点（是什么/怎么理解/易混与考法）。用户要求讲解、或错题分析后需要补课时调用。",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -160,7 +160,7 @@ TOOL_SPECS = [
     },
 ]
 
-SYSTEM_PROMPT = """你是考研政治复习系统的「学习管家」智能体。
+SYSTEM_PROMPT = """你是政治复习系统的「学习管家」智能体。
 
 用户会用自然语言提出学习任务（如"帮我准备明天的马原复习""检查我最薄弱的地方并出一道题"）。你要自主决定调用哪些工具、按什么顺序调用，获取真实数据后完成任务。
 
@@ -294,11 +294,11 @@ async def _execute_tool(name: str, args: dict, db: Session, user_id: int) -> str
         return _mistakes_by_topic(db, user_id, str(args.get("topic", "")), args.get("limit", 3))
 
     if name == "explain_topic":
-        return await explainer_agent(str(args.get("topic", "")) or "考研政治核心知识点")
+        return await explainer_agent(str(args.get("topic", "")) or "政治核心知识点")
 
     if name == "generate_quiz":
         return await quiz_agent(
-            str(args.get("topic", "考研政治核心知识点")),
+            str(args.get("topic", "政治核心知识点")),
             int(args.get("difficulty", 3) or 3),
             str(args.get("quiz_type", "single")),
         )

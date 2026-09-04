@@ -5,7 +5,7 @@ from app.routers import agents, auth, chat, mistakes, ocr, pipeline, records, re
 
 # 表结构由 Alembic 迁移管理：alembic upgrade head
 
-app = FastAPI(title="考研政治抗遗忘复习系统")
+app = FastAPI(title="政治抗遗忘复习系统")
 
 app.add_middleware(
     CORSMiddleware,

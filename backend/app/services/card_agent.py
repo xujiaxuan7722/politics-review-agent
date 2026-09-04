@@ -4,7 +4,7 @@ from app.services.prompt_rules import POLITICS_OUTPUT_RULES
 
 async def generate_review_cards(mistake_text: str, analysis: str) -> str:
     prompt = f"""
-请基于下面的考研政治错题和分析，生成 1 张复习卡片，内容精简。
+请基于下面的政治错题和分析，生成 1 张复习卡片，内容精简。
 
 只输出三行，每行一个标签，「」内替换成你写的实际内容，不要保留「」符号，不要用 JSON、markdown 或标题：
 
@@ -27,6 +27,6 @@ K: 「该考点的名称，如"新民主主义革命的领导力量"」
 """
     return await call_qwen(
         prompt,
-        system="你是一个考研政治抗遗忘复习卡片生成助手，严格按照 Q/A/K 格式输出，不要有多余内容。",
+        system="你是一个政治抗遗忘复习卡片生成助手，严格按照 Q/A/K 格式输出，不要有多余内容。",
         max_tokens=350,
     )

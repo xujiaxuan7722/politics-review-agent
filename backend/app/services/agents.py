@@ -21,7 +21,7 @@ async def explainer_agent(topic: str) -> str:
 """
 
     prompt = f"""
-请深入讲解考研政治知识点：{topic}
+请深入讲解政治知识点：{topic}
 {context_block}
 输出分三个部分：
 
@@ -38,7 +38,7 @@ async def explainer_agent(topic: str) -> str:
 """
     answer = await call_qwen(
         prompt,
-        system="你是考研政治资深辅导老师。讲解要准确、有深度、成体系，目标是让考生真正理解并能应对相关考题。",
+        system="你是政治资深辅导老师。讲解要准确、有深度、成体系，目标是让考生真正理解并能应对相关考题。",
         max_tokens=1600,
         temperature=0.3,
     )
@@ -53,7 +53,7 @@ async def quiz_agent(topic: str, difficulty: int = 3, quiz_type: str = "single")
     format_block = build_quiz_format_block(quiz_type)
     quiz_label = "单选题" if quiz_type == "single" else "分析题"
     prompt = f"""
-你是考研政治出题智能体。
+你是政治出题智能体。
 请围绕主题“{topic}”生成 1 道{quiz_label}。
 
 难度为 {difficulty}/5。
@@ -94,7 +94,7 @@ async def quiz_agent(topic: str, difficulty: int = 3, quiz_type: str = "single")
         source_prompt = prompt if attempt == 0 else strict_retry_prompt
         raw_answer = await call_qwen(
             source_prompt,
-            system=f"你是考研政治出题助手。只输出 1 道{quiz_label}，全文只能有一个题型标题，不给答案，不输出其他题型、重复字母或乱码。",
+            system=f"你是政治出题助手。只输出 1 道{quiz_label}，全文只能有一个题型标题，不给答案，不输出其他题型、重复字母或乱码。",
             max_tokens=700,
             temperature=0.12 if attempt == 0 else 0.05,
         )
@@ -126,7 +126,7 @@ async def wrap_quiz_output(
     quiz_label = "单选题" if quiz_type == "single" else "分析题"
     format_block = build_quiz_format_block(quiz_type)
     prompt = f"""
-你是考研政治练习题输出包装器。
+你是政治练习题输出包装器。
 
 用户主题：{topic}
 用户选择题型：{quiz_label}
@@ -156,7 +156,7 @@ async def wrap_quiz_output(
 """
     return await call_qwen(
         prompt,
-        system=f"你是考研政治练习题格式包装助手。只输出 1 道{quiz_label}，全文只能有一个题型标题，禁止其他题型、答案、解析、E 选项和乱码。",
+        system=f"你是政治练习题格式包装助手。只输出 1 道{quiz_label}，全文只能有一个题型标题，禁止其他题型、答案、解析、E 选项和乱码。",
         max_tokens=700,
         temperature=0.04,
     )
@@ -182,7 +182,7 @@ D. ……
 
 def normalize_topic(topic: str) -> str:
     topic = re.sub(r"\s+", " ", topic or "").strip()
-    return topic[:40] or "考研政治核心知识点"
+    return topic[:40] or "政治核心知识点"
 
 
 def normalize_difficulty(difficulty: int) -> int:
@@ -226,7 +226,7 @@ def classify_politics_module(topic: str) -> str:
     if any(keyword in text for keyword in ("形势", "政策", "时政", "外交", "安全", "共同体")):
         return "形势与政策"
 
-    return "考研政治综合"
+    return "政治综合"
 
 
 def describe_quiz_difficulty(difficulty: int) -> str:
@@ -235,7 +235,7 @@ def describe_quiz_difficulty(difficulty: int) -> str:
         2: "基础理解题，考概念含义和相近概念区分，题干不要太长。",
         3: "常规应用题，考两个知识点之间的关系，接近普通选择题和简答题难度。",
         4: "提高题，加入简短材料，要求从材料中识别原理并做辨析。",
-        5: "综合题，结合材料、现实表述和多知识点关系，题干更接近考研政治分析题。",
+        5: "综合题，结合材料、现实表述和多知识点关系，题干更接近政治分析题。",
     }
     return guides.get(normalize_difficulty(difficulty), guides[3])
 
@@ -552,7 +552,7 @@ async def grader_agent(
 """
 
     prompt = f"""
-你是考研政治批改智能体。请先认真解题，再批改学生答案。
+你是政治批改智能体。请先认真解题，再批改学生答案。
 
 题目：
 {question}
@@ -582,7 +582,7 @@ async def grader_agent(
 """
     answer = await call_qwen(
         prompt,
-        system="你是考研政治批改老师。先独立解题再批改，判断必须准确、依据充分，解析要讲透。",
+        system="你是政治批改老师。先独立解题再批改，判断必须准确、依据充分，解析要讲透。",
         max_tokens=1200,
         temperature=0.0,
         thinking=True,
@@ -639,7 +639,7 @@ def clean_grade_output(text: str) -> str:
 async def review_planner_agent(mistakes_summary: str) -> str:
     topic = normalize_review_topic(mistakes_summary)
     prompt = f"""
-你是考研政治抗遗忘复习规划智能体。
+你是政治抗遗忘复习规划智能体。
 
 复习主题或错题摘要：
 {mistakes_summary}
@@ -679,7 +679,7 @@ async def review_planner_agent(mistakes_summary: str) -> str:
 """
     answer = await call_qwen(
         prompt,
-        system="你是考研政治复习规划助手。必须按“通读、深挖、巩固、背诵关键词”四个标题输出，不要输出上午下午晚上，不要重复关键词。",
+        system="你是政治复习规划助手。必须按“通读、深挖、巩固、背诵关键词”四个标题输出，不要输出上午下午晚上，不要重复关键词。",
         max_tokens=650,
         temperature=0.1,
     )
@@ -694,7 +694,7 @@ async def review_planner_agent(mistakes_summary: str) -> str:
 def normalize_review_topic(text: str) -> str:
     text = re.sub(r"\s+", " ", text or "").strip()
     text = re.sub(r"(user|assistant|system)\s*[:：]?", "", text, flags=re.IGNORECASE)
-    return text[:30] or "考研政治薄弱知识点"
+    return text[:30] or "政治薄弱知识点"
 
 
 def clean_review_plan_output(text: str) -> str:

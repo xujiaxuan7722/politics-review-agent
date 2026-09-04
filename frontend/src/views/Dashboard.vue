@@ -4,7 +4,7 @@
       <div>
         <h1 class="page-title">学习总览</h1>
         <p class="page-subtitle">
-          把考研政治错题、知识库问答、图片识别解析和 AI 学习助手记录放在同一个复习节奏里。
+          把政治错题、知识库问答、图片识别解析和 AI 学习助手记录放在同一个复习节奏里。
         </p>
       </div>
       <el-button type="primary" @click="loadAll">刷新数据</el-button>

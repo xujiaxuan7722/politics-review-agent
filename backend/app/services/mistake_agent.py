@@ -54,7 +54,7 @@ def extract_politics_keywords(text: str, limit: int = 8) -> list[str]:
 
 async def analyze_mistake(clean_text: str) -> str:
     prompt = f"""
-请分析下面这道考研政治错题。
+请分析下面这道政治错题。
 
 输出结构：
 ## 题目类型
@@ -86,7 +86,7 @@ async def analyze_mistake(clean_text: str) -> str:
 
     return await call_qwen(
         prompt,
-        system="你是一名考研政治错题分析老师。先独立解题再分析，解析要讲透，不编造时政事实。",
+        system="你是一名政治错题分析老师。先独立解题再分析，解析要讲透，不编造时政事实。",
         max_tokens=1300,
         thinking=True,
     )

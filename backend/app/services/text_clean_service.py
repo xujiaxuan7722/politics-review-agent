@@ -28,7 +28,7 @@ POLITICS_OCR_CLEAN_RULES = """
 
 async def clean_politics_ocr_text(raw_text: str) -> str:
     prompt = f"""
-请把下面的考研政治 OCR 原文整理成适合复习的题目文本。
+请把下面的政治 OCR 原文整理成适合复习的题目文本。
 
 {POLITICS_OCR_CLEAN_RULES}
 
@@ -38,7 +38,7 @@ OCR 原文：
 
     return await call_qwen(
         prompt,
-        system="你是谨慎的考研政治 OCR 整理助手。你只做文本整理和结构化，不重新解题，不臆造时政事实。",
+        system="你是谨慎的政治 OCR 整理助手。你只做文本整理和结构化，不重新解题，不臆造时政事实。",
         max_tokens=700,
     )
 

@@ -15,7 +15,7 @@ from app.services.rag_service import build_context, retrieve
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
-CHAT_SYSTEM = "你是考研政治资深辅导老师。回答要准确、有深度、结构清晰，适合考生理解和背诵。"
+CHAT_SYSTEM = "你是政治资深辅导老师。回答要准确、有深度、结构清晰，适合考生理解和背诵。"
 
 ANSWER_FORMAT = """
 回答分三个部分，深度逐层递进，严格按下面的骨架输出（「……」处填实际内容）：
@@ -52,7 +52,7 @@ def clean_chat_answer(text: str) -> str:
 def build_prompt(question: str, context: str = "") -> str:
     if context:
         return f"""
-请基于下面的考研政治资料回答用户问题。
+请基于下面的政治资料回答用户问题。
 
 用户问题：
 {question}
@@ -67,7 +67,7 @@ def build_prompt(question: str, context: str = "") -> str:
 {ANSWER_FORMAT}
 """
     return f"""
-请回答下面的考研政治问题。
+请回答下面的政治问题。
 
 用户问题：
 {question}

@@ -1,6 +1,6 @@
-# politics-review-agent · 考研政治抗遗忘复习系统
+# politics-review-agent · 政治抗遗忘复习系统
 
-> 面向考研政治的 AI 辅助复习平台：**自建 RAG 知识库**、**Function Calling 学习管家智能体（8 工具 / 多轮对话 / SSE 进度）**、**拍题判卷流水线**、**SM-2 间隔重复**、**判卷准确率评测集**。
+> 面向政治的 AI 辅助复习平台：**自建 RAG 知识库**、**Function Calling 学习管家智能体（8 工具 / 多轮对话 / SSE 进度）**、**拍题判卷流水线**、**SM-2 间隔重复**、**判卷准确率评测集**。
 > 后端 FastAPI + SQLAlchemy + PostgreSQL（Alembic 迁移），前端 Vue 3 + Element Plus。模型调用按用途分组、可指向不同平台（当前：学习管家 / 判卷走商汤 DeepSeek-V4，通用对话走 DeepSeek-V4-flash，向量走 SiliconFlow bge-m3），带重试与降级链；OCR 走百度通用文字识别。62 个 pytest 用例。
 
 ---

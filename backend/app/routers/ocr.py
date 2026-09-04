@@ -61,7 +61,7 @@ def external_error(stage: str, error: Exception) -> HTTPException:
 async def solve_politics_problem(clean_text: str) -> str:
     question_type_rule = build_ocr_question_type_rule(clean_text)
     prompt = f"""
-请直接解析并解答下面的考研政治题目。
+请直接解析并解答下面的政治题目。
 
 要求：
 1. 总字数控制在 350 字以内，回答要短、准、适合背诵。
@@ -88,7 +88,7 @@ async def solve_politics_problem(clean_text: str) -> str:
 
     answer = await call_qwen(
         prompt,
-        system="你是一名考研政治老师。只按“答案、解析、关键词”三段输出，禁止输出乱码、重复字母、无关标题。",
+        system="你是一名政治老师。只按“答案、解析、关键词”三段输出，禁止输出乱码、重复字母、无关标题。",
         max_tokens=700,
         temperature=0.1,
     )
@@ -109,7 +109,7 @@ async def solve_politics_problem(clean_text: str) -> str:
 """
         answer = await call_qwen(
             repair_prompt,
-            system="你是一名考研政治老师。重新输出干净答案，只保留答案、解析、关键词三段。",
+            system="你是一名政治老师。重新输出干净答案，只保留答案、解析、关键词三段。",
             max_tokens=500,
             temperature=0.05,
         )

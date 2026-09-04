@@ -391,7 +391,7 @@ function exportMistakes() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `考研政治错题本-${new Date().toISOString().slice(0, 10)}.md`;
+  link.download = `政治错题本-${new Date().toISOString().slice(0, 10)}.md`;
   link.click();
   URL.revokeObjectURL(url);
 }

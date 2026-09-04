@@ -7,7 +7,7 @@
         <div class="brand-mark">政</div>
         <div class="brand-copy">
           <h1 class="brand-title">
-            <span>考研政治</span>
+            <span>政治</span>
             <span>复习系统</span>
           </h1>
           <p>抗遗忘复习工作台</p>
@@ -31,7 +31,7 @@
       <el-header class="topbar">
         <div>
           <p class="eyebrow">Politics Review</p>
-          <h2>考研政治抗遗忘复习系统</h2>
+          <h2>政治抗遗忘复习系统</h2>
         </div>
         <div class="topbar-actions">
           <div class="status-pill">
