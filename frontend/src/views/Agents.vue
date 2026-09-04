@@ -15,23 +15,51 @@
           <p class="metric-hint" style="margin-bottom: 10px">
             用自然语言下达任务，管家会自己决定调用哪些工具（检索知识库 / 查你的学习状态 / 出题 / 建复习卡）并执行。
           </p>
+          <div v-if="conversationMessages.length" class="conv-transcript">
+            <div v-for="m in conversationMessages" :key="m.id" :class="['conv-msg', m.role]">
+              <span class="conv-role">{{ m.role === 'user' ? '你' : '管家' }}</span>
+              <div class="conv-body" v-html="renderMarkdown(m.content)"></div>
+            </div>
+          </div>
           <el-input
             v-model="managerInstruction"
             type="textarea"
             :rows="4"
-            placeholder="例如：看看我最薄弱的考点，讲解一下，再出一道题考我；或：把「实践是检验真理的唯一标准」做成一张背诵卡"
+            :placeholder="conversationId ? '接着说，例如：再出一道类似的；把刚才那题的结论做成复习卡' : '例如：看看我最薄弱的考点，讲解一下，再出一道题考我；或：把「实践是检验真理的唯一标准」做成一张背诵卡'"
           />
-          <el-button type="primary" :loading="managerLoading" style="margin-top: 14px" @click="runManager">
-            交给管家执行
-          </el-button>
+          <div style="margin-top: 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+            <el-button type="primary" :loading="managerLoading" @click="runManager">
+              {{ conversationId ? '继续对话' : '交给管家执行' }}
+            </el-button>
+            <el-button v-if="conversationId" :disabled="managerLoading" @click="newConversation">新对话</el-button>
+            <el-select
+              v-model="conversationPick"
+              placeholder="回到之前的对话"
+              size="default"
+              style="min-width: 220px"
+              clearable
+              @change="openConversation"
+            >
+              <el-option v-for="c in conversationList" :key="c.id" :label="c.title" :value="c.id" />
+            </el-select>
+          </div>
 
-          <div v-if="managerSteps.length" style="margin-top: 18px">
+          <div v-if="managerSteps.length || managerPhase" style="margin-top: 18px">
             <p class="metric-label">管家执行轨迹</p>
             <div class="keyword-tags">
-              <el-tag v-for="(step, i) in managerSteps" :key="i" type="primary" effect="plain">
-                {{ i + 1 }}. {{ step.label }}
+              <el-tag
+                v-for="(step, i) in managerSteps"
+                :key="i"
+                :type="step.status === 'failed' ? 'danger' : step.status === 'running' ? 'warning' : 'primary'"
+                effect="plain"
+              >
+                {{ i + 1 }}. {{ step.label }}{{ step.status === 'running' ? '…' : step.status === 'failed' ? '（失败）' : '' }}
               </el-tag>
+              <el-tag v-if="managerPhase" type="info" effect="plain">{{ managerPhase }}</el-tag>
             </div>
+            <p v-if="managerModel" class="metric-hint" style="margin-top: 8px">
+              模型：{{ managerModel }}<span v-if="managerDegraded">（主端点不可用，已降级）</span>
+            </p>
           </div>
         </el-tab-pane>
 
@@ -69,6 +97,14 @@
             placeholder="粘贴学生答案"
             style="margin-top: 12px"
           />
+          <div style="margin-top: 12px; display: flex; gap: 12px; align-items: center">
+            <span class="metric-hint">题型</span>
+            <el-radio-group v-model="gradeQuestionType" size="small">
+              <el-radio-button value="single">单选</el-radio-button>
+              <el-radio-button value="multi">多选</el-radio-button>
+              <el-radio-button value="unknown">不确定</el-radio-button>
+            </el-radio-group>
+          </div>
           <el-button type="primary" :loading="loading" style="margin-top: 14px" @click="runGrade">
             批改答案
           </el-button>
@@ -88,6 +124,18 @@
             生成复习计划
           </el-button>
           <p v-if="planNotice" class="metric-hint" style="margin-top: 10px">{{ planNotice }}</p>
+
+          <div v-if="planSteps.length" style="margin-top: 18px">
+            <p class="metric-label">管家取数轨迹</p>
+            <div class="keyword-tags">
+              <el-tag v-for="(step, i) in planSteps" :key="i" type="primary" effect="plain">
+                {{ i + 1 }}. {{ step.label }}
+              </el-tag>
+            </div>
+          </div>
+          <p v-else-if="planMode === 'fallback'" class="metric-hint" style="margin-top: 10px">
+            本次由基础规划模块生成（学习管家未成功取数）。
+          </p>
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -125,9 +173,86 @@ const route = useRoute();
 const activeAgent = ref("manager");
 const quizTopic = ref("");
 const planNotice = ref("");
+const planSteps = ref([]);
+const planMode = ref("");
 const managerInstruction = ref("");
 const managerLoading = ref(false);
 const managerSteps = ref([]);
+const conversationId = ref(null);
+const conversationMessages = ref([]);
+const conversationList = ref([]);
+const conversationPick = ref(null);
+const managerPhase = ref("");
+
+async function refreshConversationList() {
+  try {
+    const res = await request.get("/api/agents/conversations");
+    conversationList.value = res.data || [];
+  } catch {
+    conversationList.value = [];
+  }
+}
+
+async function openConversation(id) {
+  if (!id) return;
+  try {
+    const res = await request.get(`/api/agents/conversations/${id}`);
+    conversationId.value = res.data.id;
+    conversationMessages.value = res.data.messages || [];
+    answer.value = "";
+    managerSteps.value = [];
+  } catch {
+    ElMessage.error("读取对话失败。");
+  }
+}
+
+function newConversation() {
+  conversationId.value = null;
+  conversationMessages.value = [];
+  conversationPick.value = null;
+  answer.value = "";
+  managerSteps.value = [];
+  managerModel.value = "";
+}
+const managerModel = ref("");
+const managerDegraded = ref(false);
+
+let pendingInstruction = "";
+
+function applyManagerEvent(payload) {
+  if (payload.type === "thinking") {
+    managerPhase.value = payload.wrap_up ? "整理最终答复…" : `管家思考中（第 ${payload.round} 轮）…`;
+  } else if (payload.type === "step") {
+    if (payload.status === "running") {
+      managerPhase.value = "";
+      managerSteps.value.push({ tool: payload.tool, label: payload.label, args: payload.args, status: "running" });
+    } else {
+      const idx = managerSteps.value.findIndex((s) => s.status === "running" && s.tool === payload.tool);
+      const done = { tool: payload.tool, label: payload.label, args: payload.args, status: payload.status };
+      if (idx >= 0) managerSteps.value.splice(idx, 1, done);
+      else managerSteps.value.push(done);
+    }
+  } else if (payload.type === "meta") {
+    conversationId.value = payload.conversation_id || conversationId.value;
+  } else if (payload.type === "done") {
+    managerPhase.value = "";
+    answer.value = payload.answer || "";
+    if (payload.conversation_id) conversationId.value = payload.conversation_id;
+    if (payload.answer) {
+      conversationMessages.value.push(
+        { id: `u-${Date.now()}`, role: "user", content: pendingInstruction },
+        { id: `a-${Date.now()}`, role: "assistant", content: payload.answer },
+      );
+    }
+    managerModel.value = payload.model || "";
+    managerDegraded.value = Boolean(payload.degraded);
+    if (Array.isArray(payload.steps) && payload.steps.length) {
+      managerSteps.value = payload.steps.map((s) => ({ ...s, status: "done" }));
+    }
+  } else if (payload.type === "error") {
+    throw new Error(payload.detail || "学习管家执行失败");
+  }
+}
 
 async function runManager() {
   if (!managerInstruction.value.trim()) {
@@ -136,19 +261,54 @@ async function runManager() {
   }
 
   managerLoading.value = true;
+  pendingInstruction = managerInstruction.value.trim();
   managerSteps.value = [];
+  managerPhase.value = "连接管家…";
+  managerModel.value = "";
+  managerDegraded.value = false;
   answer.value = "";
 
   try {
-    const res = await request.post("/api/agents/manager", {
-      instruction: managerInstruction.value,
+    const response = await fetch(`${request.defaults.baseURL}/api/agents/manager-stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("auth_token") || ""}`,
+      },
+      body: JSON.stringify({ instruction: managerInstruction.value, conversation_id: conversationId.value }),
     });
-    answer.value = res.data.answer || "";
-    managerSteps.value = res.data.steps || [];
+    if (!response.ok || !response.body) {
+      throw new Error(`后端返回 ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
+      for (const event of events) {
+        const line = event.trim();
+        if (!line.startsWith("data:")) continue;
+        let payload;
+        try {
+          payload = JSON.parse(line.slice(5));
+        } catch {
+          continue;
+        }
+        applyManagerEvent(payload);
+      }
+    }
     mistakeTitle.value = managerInstruction.value.trim().slice(0, 28);
+    managerInstruction.value = "";
+    refreshConversationList();
   } catch (error) {
-    ElMessage.error(error.response?.data?.detail || "学习管家执行失败，请稍后重试。");
+    ElMessage.error(error.message || "学习管家执行失败，请稍后重试。");
   } finally {
+    managerPhase.value = "";
     managerLoading.value = false;
   }
 }
@@ -156,6 +316,7 @@ const quizType = ref("single");
 const difficulty = ref(3);
 const gradeQuestion = ref("");
 const studentAnswer = ref("");
+const gradeQuestionType = ref("unknown");
 const mistakesSummary = ref("");
 const answer = ref("");
 const mistakeTitle = ref("");
@@ -302,6 +463,8 @@ async function runAgent(url, payload) {
     const res = await request.post(url, payload);
     answer.value = res.data.answer || "";
     planNotice.value = res.data.notice || "";
+    planSteps.value = res.data.steps || [];
+    planMode.value = res.data.mode || "";
     if (answer.value) {
       mistakeTitle.value = buildDefaultMistakeTitle();
     }
@@ -328,6 +491,7 @@ function runGrade() {
   return runAgent("/api/agents/grade", {
     question: gradeQuestion.value,
     student_answer: studentAnswer.value,
+    question_type: gradeQuestionType.value,
   });
 }
 
@@ -410,5 +574,8 @@ async function saveCurrentToMistakes() {
   }
 }
 
-onMounted(restoreFromRoute);
+onMounted(() => {
+  restoreFromRoute();
+  refreshConversationList();
+});
 </script>
