@@ -79,9 +79,9 @@ def split_long_text(content: str) -> list[str]:
 
 def embed_batch(client: httpx.Client, texts: list[str]) -> list[list[float]]:
     resp = client.post(
-        f"{settings.siliconflow_base_url}/embeddings",
-        headers={"Authorization": f"Bearer {settings.siliconflow_api_key}"},
-        json={"model": settings.siliconflow_embed_model, "input": texts},
+        f"{settings.embed_endpoint.base_url}/embeddings",
+        headers={"Authorization": f"Bearer {settings.embed_endpoint.api_key}"},
+        json={"model": settings.embed_endpoint.model, "input": texts},
         timeout=120,
     )
     resp.raise_for_status()
@@ -105,7 +105,7 @@ def main():
     print(f"切块完成：共 {len(chunks)} 块（{len(corpus_files)} 个文件）")
 
     vectors: list[list[float]] = []
-    with httpx.Client() as client:
+    with httpx.Client(trust_env=False) as client:
         for i in range(0, len(chunks), EMBED_BATCH):
             batch = [f"{c['heading']}\n{c['text']}" if c["heading"] else c["text"] for c in chunks[i:i + EMBED_BATCH]]
             vectors.extend(embed_batch(client, batch))
@@ -115,7 +115,7 @@ def main():
     INDEX_PATH.write_text(
         json.dumps(
             {
-                "model": settings.siliconflow_embed_model,
+                "model": settings.embed_endpoint.model,
                 "chunks": chunks,
                 "vectors": [[round(v, 6) for v in vec] for vec in vectors],
             },

@@ -31,11 +31,12 @@ def index_available() -> bool:
 
 
 async def embed_query(text: str) -> list[float]:
-    async with httpx.AsyncClient(timeout=30) as client:
+    endpoint = settings.embed_endpoint
+    async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
         resp = await client.post(
-            f"{settings.siliconflow_base_url}/embeddings",
-            headers={"Authorization": f"Bearer {settings.siliconflow_api_key}"},
-            json={"model": settings.siliconflow_embed_model, "input": [text]},
+            f"{endpoint.base_url}/embeddings",
+            headers={"Authorization": f"Bearer {endpoint.api_key}"},
+            json={"model": endpoint.model, "input": [text]},
         )
         resp.raise_for_status()
         return resp.json()["data"][0]["embedding"]
