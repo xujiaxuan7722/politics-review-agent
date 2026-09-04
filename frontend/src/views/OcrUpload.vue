@@ -60,9 +60,14 @@
       <el-input v-model="rawText" type="textarea" :rows="8" />
 
       <div class="button-row" style="margin-top: 14px">
+        <el-radio-group v-model="questionType" size="small">
+          <el-radio-button value="single">单选</el-radio-button>
+          <el-radio-button value="multi">多选</el-radio-button>
+          <el-radio-button value="unknown">不确定</el-radio-button>
+        </el-radio-group>
         <el-input
           v-model="studentAnswer"
-          placeholder="先自己作答：选择题填字母（如 B），分析题写要点"
+          placeholder="先自己作答：选择题填字母（单选如 B，多选如 ABD），分析题写要点"
           style="max-width: 420px"
         />
         <el-button type="primary" :loading="grading" @click="gradeArchive">
@@ -118,6 +123,7 @@ import { renderMarkdown } from "../utils/markdown";
 
 const rawText = ref("");
 const studentAnswer = ref("");
+const questionType = ref("unknown"); // 题型由拍题的人指定，不让模型或代码猜
 const answer = ref("");
 const gradeResult = ref(null);
 const title = ref("");
@@ -199,6 +205,7 @@ async function gradeArchive() {
       question_text: rawText.value,
       student_answer: studentAnswer.value,
       title: title.value,
+      question_type: questionType.value,
     });
 
     gradeResult.value = res.data;

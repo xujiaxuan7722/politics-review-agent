@@ -1,4 +1,4 @@
-"""多智能体流水线：批改 → 错题归档 → 生成复习卡 → 进入复习队列，一次调用完成。"""
+"""判卷流水线：批改 → 错题归档 → 生成复习卡 → 进入复习队列，一次调用完成（确定性编排，非多智能体）。"""
 
 import re
 from datetime import date
@@ -23,6 +23,7 @@ class GradeArchiveReq(BaseModel):
     student_answer: str = Field(min_length=1)
     title: str | None = None
     archive_correct: bool = False  # 答对的题默认不进错题本
+    question_type: str = "unknown"  # single / multi / unknown，由拍题的人指定
 
 
 def parse_judgement(grade_text: str) -> str:
@@ -37,7 +38,7 @@ async def grade_and_archive(
     current_user: User = Depends(get_current_user),
 ):
     # 智能体 1：批改判题
-    grade_text = await grader_agent(req.question_text, req.student_answer)
+    grade_text = await grader_agent(req.question_text, req.student_answer, question_type=req.question_type)
     judgement = parse_judgement(grade_text)
 
     result = {

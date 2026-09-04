@@ -1,5 +1,6 @@
 import re
 
+from app.config import settings
 from app.services.llm_service import call_qwen, clean_ai_output_noise
 from app.services.rag_service import build_context, retrieve
 
@@ -519,13 +520,24 @@ def is_bad_quiz_output(text: str, quiz_type: str = "single") -> bool:
 
 
 
-async def grader_agent(question: str, student_answer: str) -> str:
-    student_choice = extract_student_choice(student_answer)
+async def grader_agent(
+    question: str,
+    student_answer: str,
+    endpoint=None,
+    thinking: bool | None = None,
+    allow_fallback: bool = True,
+    question_type: str = "unknown",
+) -> str:
+    """endpoint / thinking 缺省走判卷专用组配置；评测脚本用它们逐个模型对比（并关掉降级）。
+    question_type：single / multi / unknown，由拍题的人指定；不猜题号、不按试卷惯例推断。"""
+    question_type = normalize_question_type(question_type)
+    student_choices = extract_student_choices(student_answer)
     student_choice_line = (
-        f"学生选项已由系统解析为：{student_choice}。批改时必须以这个选项为准，不要改成其他字母。"
-        if student_choice
-        else "学生答案不是单个选项，请按原文批改。"
+        f"学生选项已由系统解析为：{student_choices}。批改时必须以这个选项为准，不要改成其他字母。"
+        if student_choices
+        else "学生答案不是选项字母，请按原文批改。"
     )
+    question_type_line = QUESTION_TYPE_LINES[question_type]
 
     try:
         passages = await retrieve(question, top_k=3, min_score=0.5)
@@ -549,6 +561,7 @@ async def grader_agent(question: str, student_answer: str) -> str:
 {student_answer}
 
 {student_choice_line}
+{question_type_line}
 {reference_block}
 输出下面三个部分：
 ## 判断
@@ -563,7 +576,7 @@ async def grader_agent(question: str, student_answer: str) -> str:
 
 判题规则：
 1. 注意否定式题干（“不属于”“不正确”“错误的是”），先确认题目问的方向再判断。
-2. 如果题干没有标明单选还是多选，而你经过分析认为多个选项都成立，必须在解析开头明确写出“此题疑为多选题，规范答案为 ×××”，并说明依据；不要硬从几个都成立的选项里挑一个。
+2. 题型以上面“题型”一行为准：标明单选就只能有一个正确选项；标明多选就要给出全部正确选项，学生漏选、错选、多选都判“错误”。只有题型未指定时，如果你经过分析认为多个选项都成立，才在解析开头写出“此题疑为多选题，规范答案为 ×××”并说明依据，不要硬从几个都成立的选项里挑一个。
 3. 涉及时政表述时，如果没有资料支撑且自己不确定，在解析中写明“此处表述以最新官方材料为准”，不要编造。
 不要输出乱码、代码块、反斜杠、聊天角色标记或单独的选项字母。
 """
@@ -573,15 +586,44 @@ async def grader_agent(question: str, student_answer: str) -> str:
         max_tokens=1200,
         temperature=0.0,
         thinking=True,
+        endpoint=endpoint or settings.grader_endpoint,  # 判卷走专用组（裁决型任务用纪律最好的模型）
+        thinking_gate=settings.grader_thinking_enabled if thinking is None else thinking,
+        allow_fallback=allow_fallback,
     )
     return clean_grade_output(answer)
 
 
+QUESTION_TYPES = ("single", "multi", "unknown")
+QUESTION_TYPE_LINES = {
+    "single": "题型：单选题（由用户指定）。有且只有一个正确选项，不要按多选处理，不要写“疑为多选题”。",
+    "multi": "题型：多选题（由用户指定）。正确答案可能是两个及以上选项，请给出全部正确选项；学生必须与全部正确选项完全一致才判“正确”，漏选、错选、多选一律判“错误”，并指出漏了或多了哪一项。",
+    "unknown": "题型：未指定。请根据题干和选项自行判断是单选还是多选，并在解析里说明依据。",
+}
+
+
+def normalize_question_type(value: str | None) -> str:
+    value = (value or "unknown").strip().lower()
+    aliases = {"单选": "single", "单选题": "single", "多选": "multi", "多选题": "multi", "不确定": "unknown", "": "unknown"}
+    value = aliases.get(value, value)
+    return value if value in QUESTION_TYPES else "unknown"
+
+
 def extract_student_choice(student_answer: str) -> str | None:
+    """单个选项字母（兼容旧调用）；多选请用 extract_student_choices。"""
     normalized = (student_answer or "").strip().upper()
     normalized = normalized.replace("Ａ", "A").replace("Ｂ", "B").replace("Ｃ", "C").replace("Ｄ", "D")
     match = re.search(r"(?<![A-Z])([A-D])(?![A-Z])", normalized)
     return match.group(1) if match else None
+
+
+def extract_student_choices(student_answer: str) -> str | None:
+    """把“B”“ABD”“a、c”“B 和 D”解析成排好序的字母串；不是选项字母时返回 None。"""
+    normalized = (student_answer or "").strip().upper()
+    normalized = normalized.replace("Ａ", "A").replace("Ｂ", "B").replace("Ｃ", "C").replace("Ｄ", "D")
+    stripped = re.sub(r"[\s、,，;；和与及/.．]+", "", normalized)
+    if not stripped or not re.fullmatch(r"[A-D]{1,4}", stripped):
+        return None
+    return "".join(sorted(set(stripped)))
 
 
 def clean_grade_output(text: str) -> str:

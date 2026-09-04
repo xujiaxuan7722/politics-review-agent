@@ -2,7 +2,7 @@
 
 from app.routers.pipeline import parse_judgement
 from app.routers.review import is_placeholder_card, parse_cards_text
-from app.services.agents import extract_student_choice
+from app.services.agents import extract_student_choice, extract_student_choices, normalize_question_type
 
 
 def test_parse_judgement_reads_each_verdict():
@@ -39,3 +39,21 @@ def test_extract_student_choice_handles_fullwidth_and_noise():
     assert extract_student_choice("答案是D。") == "D"
     assert extract_student_choice("ABCD 全选") is None  # 连续字母不是单选
     assert extract_student_choice("不知道") is None
+
+
+def test_extract_student_choices_handles_multi_select_and_noise():
+    assert extract_student_choices("B") == "B"
+    assert extract_student_choices("abd") == "ABD"
+    assert extract_student_choices("A、C") == "AC"
+    assert extract_student_choices("B 和 D") == "BD"
+    assert extract_student_choices("Ｂ,Ｃ") == "BC"
+    assert extract_student_choices("我觉得是生产力") is None
+    assert extract_student_choices("ABCDE") is None
+
+
+def test_normalize_question_type_accepts_aliases():
+    assert normalize_question_type("multi") == "multi"
+    assert normalize_question_type("多选题") == "multi"
+    assert normalize_question_type("单选") == "single"
+    assert normalize_question_type(None) == "unknown"
+    assert normalize_question_type("whatever") == "unknown"
